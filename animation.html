@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Life of a Developer</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;family=Syne:wght@400;700;800&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;width:100%;overflow:hidden;background:#060612;}
+  body{font-family:'Syne',sans-serif;}
+
+  /* Scene container */
+  #stage{position:relative;width:100%;height:100%;overflow:hidden;}
+
+  .scene{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;
+    transition:opacity 0.7s ease;
+  }
+  .scene.active{opacity:1;pointer-events:auto;}
+
+  /* Progress bar */
+  #progress-bar{
+    position:fixed;bottom:0;left:0;height:3px;
+    background:linear-gradient(90deg,#00f0ff,#7c3aed);
+    transition:width 0.4s ease;z-index:100;
+  }
+
+  /* Scene indicators */
+  #scene-dots{
+    position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+    display:flex;gap:8px;z-index:100;
+  }
+  .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:rgba(255,255,255,0.2);
+    border:1px solid rgba(255,255,255,0.3);
+    cursor:pointer;transition:all 0.3s;
+  }
+  .dot.active{background:#00f0ff;box-shadow:0 0 8px #00f0ff;}
+
+  /* Nav buttons */
+  #nav-btns{
+    position:fixed;bottom:40px;right:24px;
+    display:flex;flex-direction:column;gap:10px;z-index:100;
+  }
+  .nav-btn{
+    width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;transition:all 0.2s;
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,0.15);
+    color:#fff;
+  }
+  .nav-btn:hover{background:rgba(0,240,255,0.2);border-color:#00f0ff;}
+
+  /* Typing cursor */
+  .cursor::after{content:'|';animation:blink 0.8s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+  /* Glow text */
+  .glow-cyan{text-shadow:0 0 20px #00f0ff,0 0 40px #00f0ff88;}
+  .glow-purple{text-shadow:0 0 20px #a855f7,0 0 40px #a855f788;}
+
+  /* Code block */
+  .code-block{
+    font-family:'JetBrains Mono',monospace;
+    background:rgba(0,0,0,0.5);
+    border:1px solid rgba(0,240,255,0.25);
+    border-radius:12px;padding:20px 24px;
+    font-size:13px;line-height:1.8;
+    color:#e2e8f0;
+    position:relative;overflow:hidden;
+  }
+  .code-block::before{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(135deg,rgba(0,240,255,0.04),transparent);
+  }
+  .kw{color:#c084fc;}
+  .fn{color:#00f0ff;}
+  .str{color:#86efac;}
+  .cm{color:#64748b;}
+
+  /* Floating particles */
+  .particle{
+    position:absolute;border-radius:50%;pointer-events:none;
+    animation:float-up linear infinite;
+  }
+  @keyframes float-up{
+    0%{transform:translateY(0) scale(1);opacity:0.8;}
+    100%{transform:translateY(-100px) scale(0);opacity:0;}
+  }
+
+  /* Neural network canvas */
+  #neural-canvas{position:absolute;inset:0;pointer-events:none;}
+
+  /* Beam animation */
+  .beam{
+    position:absolute;
+    height:2px;
+    background:linear-gradient(90deg,transparent,#00f0ff,transparent);
+    animation:beam-move 2s ease-in-out infinite;
+    border-radius:4px;
+  }
+  @keyframes beam-move{
+    0%{transform:scaleX(0) translateX(-50%);opacity:0;}
+    50%{transform:scaleX(1) translateX(0);opacity:1;}
+    100%{transform:scaleX(0) translateX(50%);opacity:0;}
+  }
+
+  /* Spinning dots loader */
+  .spinner-dot{
+    width:10px;height:10px;border-radius:50%;
+    background:#00f0ff;
+    animation:spinner-bounce 1.4s ease-in-out infinite;
+  }
+  .spinner-dot:nth-child(2){animation-delay:0.2s;background:#a855f7;}
+  .spinner-dot:nth-child(3){animation-delay:0.4s;background:#f472b6;}
+  @keyframes spinner-bounce{
+    0%,80%,100%{transform:scale(0.4);opacity:0.4;}
+    40%{transform:scale(1.2);opacity:1;}
+  }
+
+  /* Slide-in */
+  @keyframes slide-in-up{
+    from{transform:translateY(30px);opacity:0;}
+    to{transform:translateY(0);opacity:1;}
+  }
+  .slide-in{animation:slide-in-up 0.6s ease forwards;}
+
+  /* Check mark */
+  @keyframes check-pop{
+    0%{transform:scale(0) rotate(-45deg);opacity:0;}
+    60%{transform:scale(1.3) rotate(5deg);}
+    100%{transform:scale(1) rotate(0);opacity:1;}
+  }
+  .check-pop{animation:check-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;}
+
+  /* Pulse ring */
+  @keyframes pulse-ring{
+    0%{transform:scale(1);opacity:0.8;}
+    100%{transform:scale(2.5);opacity:0;}
+  }
+
+  /* Arrow flow */
+  @keyframes arrow-flow{
+    0%{stroke-dashoffset:200;}
+    100%{stroke-dashoffset:0;}
+  }
+
+  /* Fade pulse */
+  @keyframes fade-pulse{
+    0%,100%{opacity:0.4;}
+    50%{opacity:1;}
+  }
+
+  /* Scene-specific bg */
+  .bg-s1{background:radial-gradient(ellipse at 30% 70%,#0d1a3a 0%,#060612 70%);}
+  .bg-s2{background:radial-gradient(ellipse at 60% 40%,#0d0d2e 0%,#060612 70%);}
+  .bg-s3{background:radial-gradient(ellipse at 50% 50%,#0f0a1e 0%,#060612 70%);}
+  .bg-s4{background:radial-gradient(ellipse at 40% 60%,#001a1a 0%,#060612 70%);}
+  .bg-s5{background:radial-gradient(ellipse at 70% 30%,#0a1a0a 0%,#060612 70%);}
+  .bg-s6{background:radial-gradient(ellipse at 50% 50%,#1a0a0a 0%,#060612 70%);}
+  .bg-s7{background:radial-gradient(ellipse at 30% 50%,#0a0d1a 0%,#060612 70%);}
+  .bg-s8{background:radial-gradient(ellipse at 50% 40%,#1a1a0a 0%,#060612 70%);}
+
+  .scene-label{
+    font-size:11px;letter-spacing:3px;text-transform:uppercase;
+    color:rgba(255,255,255,0.35);margin-bottom:12px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .scene-title{
+    font-size:clamp(22px,4vw,42px);font-weight:800;
+    background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.6) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;
+    line-height:1.2;margin-bottom:8px;text-align:center;
+  }
+  .scene-sub{
+    font-size:clamp(13px,1.8vw,16px);
+    color:rgba(255,255,255,0.45);
+    font-family:'JetBrains Mono',monospace;
+    text-align:center;margin-bottom:28px;
+  }
+
+  /* Developer desk SVG */
+  .desk-container{filter:drop-shadow(0 20px 40px rgba(0,240,255,0.15));}
+
+  /* Timeline strip */
+  #timeline{
+    position:fixed;left:24px;top:50%;transform:translateY(-50%);
+    display:flex;flex-direction:column;gap:6px;z-index:100;
+  }
+  .tl-item{
+    display:flex;align-items:center;gap:8px;cursor:pointer;
+    opacity:0.4;transition:all 0.3s;
+  }
+  .tl-item.active{opacity:1;}
+  .tl-line{width:2px;height:20px;background:rgba(255,255,255,0.15);margin-left:5px;}
+  .tl-dot{width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);}
+  .tl-item.active .tl-dot{border-color:#00f0ff;background:#00f0ff;box-shadow:0 0 8px #00f0ff;}
+  .tl-label{font-size:10px;color:rgba(255,255,255,0.5);white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+  .tl-item.active .tl-label{color:#00f0ff;}
+</style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js" type="text/javascript"></script>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body>
+  <div id="stage">
+   <canvas id="neural-canvas"></canvas><!-- Scene 1: Developer Starts Work -->
+   <div class="scene bg-s1" id="s1">
+    <div style="position:absolute;inset:0;overflow:hidden;"><!-- Stars -->
+     <div id="stars-s1"></div>
+    </div>
+    <div class="scene-label">
+     Scene 01 / 08
+    </div>
+    <div class="scene-title" id="s1-title">
+     Another day,<br>
+     another challenge…
+    </div>
+    <div class="scene-sub">
+     ☕ Coffee. Code. Repeat.
+    </div>
+    <div class="desk-container" style="margin-top:10px;">
+     <svg width="320" height="200" viewbox="0 0 320 200" fill="none"><!-- Desk surface --> <rect x="20" y="130" width="280" height="14" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1" /> <!-- Laptop base --> <rect x="90" y="105" width="140" height="30" rx="6" fill="#0f172a" stroke="#1e40af" stroke-width="1.5" /> <!-- Laptop screen --> <rect x="95" y="40" width="130" height="70" rx="5" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5" /> <!-- Screen glow --> <rect x="100" y="45" width="120" height="60" rx="3" fill="#0c1445" /> <!-- Code lines on screen --> <rect x="106" y="52" width="60" height="3" rx="1.5" fill="#c084fc" opacity="0.9" /> <rect x="112" y="60" width="80" height="3" rx="1.5" fill="#00f0ff" opacity="0.9" /> <rect x="112" y="68" width="50" height="3" rx="1.5" fill="#86efac" opacity="0.9" /> <rect x="106" y="76" width="70" height="3" rx="1.5" fill="#c084fc" opacity="0.9" /> <rect x="112" y="84" width="40" height="3" rx="1.5" fill="#f472b6" opacity="0.9" /> <!-- Typing cursor blink --> <rect x="154" y="84" width="2" height="10" rx="1" fill="#00f0ff" id="cursor-rect">
+       <animate attributename="opacity" values="1;0;1" dur="0.8s" repeatcount="indefinite" />
+      </rect> <!-- Coffee mug --> <rect x="255" y="108" width="22" height="22" rx="4" fill="#7c3aed" opacity="0.8" /> <ellipse cx="266" cy="109" rx="9" ry="3" fill="#4c1d95" /> <path d="M277 115 Q284 115 284 119 Q284 123 277 123" stroke="#7c3aed" stroke-width="2" fill="none" /> <!-- Steam --> <path d="M262 106 Q260 100 262 95" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" fill="none">
+       <animate attributename="opacity" values="0.3;0.8;0.3" dur="2s" repeatcount="indefinite" />
+      </path> <path d="M267 104 Q265 98 267 92" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none">
+       <animate attributename="opacity" values="0.5;0.2;0.5" dur="1.7s" repeatcount="indefinite" />
+      </path> <!-- Mouse --> <rect x="240" y="125" width="18" height="12" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" /> <!-- Desk legs --> <rect x="40" y="144" width="8" height="40" rx="2" fill="#1e293b" /> <rect x="272" y="144" width="8" height="40" rx="2" fill="#1e293b" />
+     </svg>
+    </div>
+    <div class="code-block" style="max-width:320px;margin-top:10px;font-size:12px;"><span class="kw">const</span> <span class="fn">developer</span> = {<br>
+      &nbsp;&nbsp;mood: <span class="str">'determined'</span>,<br>
+      &nbsp;&nbsp;coffee: <span class="fn">Infinity</span>,<br>
+      &nbsp;&nbsp;problems: <span class="fn">solvable</span>() <span class="cm">// always</span><br>
+      };
+    </div>
+   </div><!-- Scene 2: Requesting AI Assistance -->
+   <div class="scene bg-s2" id="s2">
+    <div class="scene-label">
+     Scene 02 / 08
+    </div>
+    <div class="scene-title">
+     Let's see what<br>
+     AI suggests…
+    </div>
+    <div class="scene-sub">
+     🤖 Sending query to the AI engine
+    </div>
+    <div style="position:relative;width:340px;height:180px;margin:20px auto;"><!-- Laptop -->
+     <div style="position:absolute;left:0;top:40px;">
+      <svg width="100" height="80" viewbox="0 0 100 80"><rect x="5" y="5" width="90" height="55" rx="5" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5" /> <rect x="10" y="10" width="80" height="45" rx="3" fill="#0c1445" /> <rect x="15" y="18" width="40" height="3" rx="1.5" fill="#00f0ff" opacity="0.8" /> <rect x="15" y="25" width="55" height="3" rx="1.5" fill="#c084fc" opacity="0.8" /> <rect x="15" y="32" width="30" height="3" rx="1.5" fill="#86efac" opacity="0.8" /> <rect x="0" y="60" width="100" height="8" rx="2" fill="#0f172a" stroke="#334155" stroke-width="1" />
+      </svg>
+      <div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;font-family:'JetBrains Mono',monospace;">
+       DEV
+      </div>
+     </div><!-- Beam -->
+     <div style="position:absolute;left:100px;top:70px;width:140px;overflow:hidden;">
+      <svg width="140" height="20" viewbox="0 0 140 20"><defs>
+        <lineargradient id="beamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+         <stop offset="0%" stop-color="transparent" />
+         <stop offset="50%" stop-color="#00f0ff" />
+         <stop offset="100%" stop-color="transparent" />
+        </lineargradient>
+       </defs> <rect y="9" height="2" rx="1" fill="url(#beamGrad)">
+        <animate attributename="x" values="-140;0;140" dur="1.5s" repeatcount="indefinite" />
+        <animate attributename="width" values="0;140;0" dur="1.5s" repeatcount="indefinite" />
+       </rect> <!-- Dots traveling --> <circle r="3" fill="#00f0ff">
+        <animate attributename="cx" values="0;140" dur="1.5s" repeatcount="indefinite" />
+        <animate attributename="cy" values="10;10" dur="1.5s" repeatcount="indefinite" />
+        <animate attributename="opacity" values="0;1;0" dur="1.5s" repeatcount="indefinite" />
+       </circle> <circle r="2" fill="#a855f7">
+        <animate attributename="cx" values="0;140" dur="1.5s" begin="0.3s" repeatcount="indefinite" />
+        <animate attributename="cy" values="10;10" dur="1.5s" begin="0.3s" repeatcount="indefinite" />
+        <animate attributename="opacity" values="0;1;0" dur="1.5s" begin="0.3s" repeatcount="indefinite" />
+       </circle>
+      </svg>
+      <div style="text-align:center;font-size:9px;color:#00f0ff;opacity:0.6;font-family:'JetBrains Mono',monospace;margin-top:-2px;">
+       query
+      </div>
+     </div><!-- AI Icon -->
+     <div style="position:absolute;right:0;top:30px;">
+      <svg width="100" height="90" viewbox="0 0 100 90"><!-- AI brain shape --> <circle cx="50" cy="40" r="32" fill="#0f172a" stroke="#a855f7" stroke-width="1.5" /> <circle cx="50" cy="40" r="32" fill="none" stroke="#a855f7" stroke-width="1.5" opacity="0.4">
+        <animate attributename="r" values="32;38;32" dur="2s" repeatcount="indefinite" />
+        <animate attributename="opacity" values="0.4;0;0.4" dur="2s" repeatcount="indefinite" />
+       </circle> <!-- AI text --> <text x="50" y="36" text-anchor="middle" fill="#a855f7" font-size="14" font-weight="700" font-family="Syne,sans-serif">
+        AI
+       </text> <text x="50" y="50" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="8" font-family="JetBrains Mono,monospace">
+        ENGINE
+       </text> <!-- Orbit dots --> <circle cx="50" cy="8" r="4" fill="#00f0ff">
+        <animatetransform attributename="transform" type="rotate" from="0 50 40" to="360 50 40" dur="4s" repeatcount="indefinite" />
+       </circle> <circle cx="82" cy="40" r="3" fill="#f472b6">
+        <animatetransform attributename="transform" type="rotate" from="90 50 40" to="450 50 40" dur="3s" repeatcount="indefinite" />
+       </circle>
+      </svg>
+      <div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.4);margin-top:-5px;font-family:'JetBrains Mono',monospace;">
+       AGENT
+      </div>
+     </div>
+    </div>
+    <div class="code-block" style="max-width:320px;font-size:12px;"><span class="fn">aiClient</span>.<span class="fn">query</span>({<br>
+      &nbsp;&nbsp;prompt: <span class="str">"How to optimize this loop?"</span>,<br>
+      &nbsp;&nbsp;context: <span class="fn">codebase</span>.getRelevant(),<br>
+      &nbsp;&nbsp;model: <span class="str">'gpt-4'</span><br>
+      });
+    </div>
+   </div><!-- Scene 3: AI Processing -->
+   <div class="scene bg-s3" id="s3">
+    <div class="scene-label">
+     Scene 03 / 08
+    </div>
+    <div class="scene-title">
+     Processing your<br>
+     request…
+    </div>
+    <div class="scene-sub">
+     🧠 Neural pathways activating
+    </div>
+    <canvas id="nn-canvas" width="340" height="180" style="margin:16px auto;display:block;"></canvas>
+    <div style="display:flex;gap:16px;align-items:center;margin:8px 0 20px;">
+     <div class="spinner-dot"></div>
+     <div class="spinner-dot"></div>
+     <div class="spinner-dot"></div>
+    </div><!-- Progress bar -->
+    <div style="width:300px;background:rgba(255,255,255,0.08);border-radius:999px;height:6px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
+     <div id="ai-progress" style="height:100%;border-radius:999px;background:linear-gradient(90deg,#a855f7,#00f0ff);width:0%;transition:width 0.1s;"></div>
+    </div>
+    <div id="ai-progress-txt" style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:8px;font-family:'JetBrains Mono',monospace;">
+     Analyzing patterns… 0%
+    </div>
+   </div><!-- Scene 4: AI Response Received -->
+   <div class="scene bg-s4" id="s4">
+    <div class="scene-label">
+     Scene 04 / 08
+    </div>
+    <div class="scene-title" style="background:linear-gradient(135deg,#00f0ff,#86efac);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+     Here's the<br>
+     solution! ✨
+    </div>
+    <div class="scene-sub">
+     AI response received in 1.2s
+    </div>
+    <div class="code-block" style="max-width:340px;position:relative;" id="solution-block">
+     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);">
+      <div style="width:8px;height:8px;border-radius:50%;background:#00f0ff;box-shadow:0 0 6px #00f0ff;"></div><span style="font-size:10px;color:#00f0ff;letter-spacing:2px;">AI RESPONSE</span>
+     </div>
+     <div id="typed-solution"></div>
+    </div>
+    <div style="margin-top:16px;padding:12px 20px;background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.2);border-radius:10px;max-width:340px;">
+     <div style="font-size:11px;color:#00f0ff;font-family:'JetBrains Mono',monospace;">
+      ⚡ 3x faster · 40% less memory · O(n log n)
+     </div>
+    </div>
+   </div><!-- Scene 5: Developer Implements -->
+   <div class="scene bg-s5" id="s5">
+    <div class="scene-label">
+     Scene 05 / 08
+    </div>
+    <div class="scene-title">
+     Testing the<br>
+     AI-powered solution…
+    </div>
+    <div class="scene-sub">
+     🔧 Merging suggestion into codebase
+    </div>
+    <div style="display:flex;gap:16px;align-items:flex-start;max-width:400px;margin:10px auto;">
+     <div class="code-block" style="flex:1;font-size:11px;">
+      <div style="font-size:9px;color:#ef4444;margin-bottom:8px;letter-spacing:1px;">
+       BEFORE
+      </div><span class="cm">// O(n²) — slow</span><br><span class="kw">for</span>(<span class="kw">let</span> i=<span class="fn">0</span>;i&lt;n;i++){<br>
+       &nbsp;&nbsp;<span class="kw">for</span>(<span class="kw">let</span> j=<span class="fn">0</span>;j&lt;n;j++){<br>
+       &nbsp;&nbsp;&nbsp;&nbsp;check(i,j);<br>
+       &nbsp;&nbsp;}<br>
+       }
+     </div>
+     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding-top:20px;">
+      <svg width="30" height="30" viewbox="0 0 30 30">
+       <path d="M5 15 L25 15 M18 8 L25 15 L18 22" stroke="#00f0ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <div style="font-size:9px;color:#00f0ff;font-family:'JetBrains Mono',monospace;text-align:center;">
+       AI<br>
+       merge
+      </div>
+     </div>
+     <div class="code-block" style="flex:1;font-size:11px;border-color:rgba(134,239,172,0.4);">
+      <div style="font-size:9px;color:#86efac;margin-bottom:8px;letter-spacing:1px;">
+       AFTER
+      </div><span class="cm">// O(n log n) ✓</span><br>
+       items.<span class="fn">sort</span>((a,b) =&gt;<br>
+       &nbsp;&nbsp;a.<span class="fn">val</span> - b.<span class="fn">val</span><br>
+       ).<span class="fn">reduce</span>(<br>
+       &nbsp;&nbsp;optimized<br>
+       );
+     </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:16px;" id="checks-container">
+     <div class="check-item" data-delay="0" style="opacity:0;display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(134,239,172,0.08);border:1px solid rgba(134,239,172,0.2);border-radius:8px;"><span style="color:#86efac;font-size:16px;">✓</span> <span style="font-size:11px;color:rgba(255,255,255,0.7);font-family:'JetBrains Mono',monospace;">syntax ok</span>
+     </div>
+     <div class="check-item" data-delay="300" style="opacity:0;display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(134,239,172,0.08);border:1px solid rgba(134,239,172,0.2);border-radius:8px;"><span style="color:#86efac;font-size:16px;">✓</span> <span style="font-size:11px;color:rgba(255,255,255,0.7);font-family:'JetBrains Mono',monospace;">no conflicts</span>
+     </div>
+     <div class="check-item" data-delay="600" style="opacity:0;display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(134,239,172,0.08);border:1px solid rgba(134,239,172,0.2);border-radius:8px;"><span style="color:#86efac;font-size:16px;">✓</span> <span style="font-size:11px;color:rgba(255,255,255,0.7);font-family:'JetBrains Mono',monospace;">merged!</span>
+     </div>
+    </div>
+   </div><!-- Scene 6: Testing & Debugging -->
+   <div class="scene bg-s6" id="s6">
+    <div class="scene-label">
+     Scene 06 / 08
+    </div>
+    <div class="scene-title" style="background:linear-gradient(135deg,#86efac,#00f0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+     Everything looks<br>
+     perfect! 🎉
+    </div>
+    <div class="scene-sub">
+     All 247 tests passing
+    </div>
+    <div style="max-width:340px;margin:10px auto;"><!-- Test results -->
+     <div style="display:flex;flex-direction:column;gap:6px;" id="test-results">
+      <div class="test-row" data-delay="0" style="opacity:0;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(134,239,172,0.06);border-left:3px solid #86efac;border-radius:0 6px 6px 0;"><span style="color:#86efac;font-size:12px;">●</span> <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.8);flex:1;">sort_performance_test</span> <span style="font-size:10px;color:#86efac;font-family:'JetBrains Mono',monospace;">PASS 12ms</span>
+      </div>
+      <div class="test-row" data-delay="150" style="opacity:0;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(134,239,172,0.06);border-left:3px solid #86efac;border-radius:0 6px 6px 0;"><span style="color:#86efac;font-size:12px;">●</span> <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.8);flex:1;">memory_usage_check</span> <span style="font-size:10px;color:#86efac;font-family:'JetBrains Mono',monospace;">PASS 8ms</span>
+      </div>
+      <div class="test-row" data-delay="300" style="opacity:0;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(134,239,172,0.06);border-left:3px solid #86efac;border-radius:0 6px 6px 0;"><span style="color:#86efac;font-size:12px;">●</span> <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.8);flex:1;">edge_cases_boundary</span> <span style="font-size:10px;color:#86efac;font-family:'JetBrains Mono',monospace;">PASS 5ms</span>
+      </div>
+      <div class="test-row" data-delay="450" style="opacity:0;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(134,239,172,0.06);border-left:3px solid #86efac;border-radius:0 6px 6px 0;"><span style="color:#86efac;font-size:12px;">●</span> <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.8);flex:1;">integration_suite_full</span> <span style="font-size:10px;color:#86efac;font-family:'JetBrains Mono',monospace;">PASS 47ms</span>
+      </div>
+     </div><!-- Coverage bar -->
+     <div style="margin-top:16px;padding:12px;background:rgba(0,0,0,0.3);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:10px;color:rgba(255,255,255,0.5);font-family:'JetBrains Mono',monospace;">Coverage</span> <span style="font-size:10px;color:#86efac;font-family:'JetBrains Mono',monospace;" id="coverage-pct">0%</span>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:999px;height:5px;">
+       <div id="coverage-bar" style="height:100%;border-radius:999px;background:linear-gradient(90deg,#86efac,#00f0ff);width:0%;transition:width 1.5s ease;"></div>
+      </div>
+     </div>
+    </div>
+   </div><!-- Scene 7: Collaboration & Deployment -->
+   <div class="scene bg-s7" id="s7">
+    <div class="scene-label">
+     Scene 07 / 08
+    </div>
+    <div class="scene-title">
+     Collaboration<br>
+     made easy with AI
+    </div>
+    <div class="scene-sub">
+     🚀 Deploying to production
+    </div>
+    <div style="position:relative;width:360px;height:200px;margin:10px auto;">
+     <svg width="360" height="200" viewbox="0 0 360 200"><!-- Laptop (left) --> <rect x="10" y="70" width="80" height="50" rx="5" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5" /> <rect x="15" y="75" width="70" height="40" rx="3" fill="#0c1445" /> <rect x="20" y="82" width="30" height="2" rx="1" fill="#00f0ff" opacity="0.8" /> <rect x="20" y="88" width="45" height="2" rx="1" fill="#c084fc" opacity="0.8" /> <rect x="20" y="94" width="25" height="2" rx="1" fill="#86efac" opacity="0.8" /> <rect x="5" y="120" width="90" height="6" rx="2" fill="#0f172a" stroke="#334155" /> <!-- Deploy arrows left to center --> <path d="M95 95 L160 95" stroke="#00f0ff" stroke-width="1.5" stroke-dasharray="4 3">
+       <animate attributename="stroke-dashoffset" from="14" to="0" dur="1s" repeatcount="indefinite" />
+      </path> <polygon points="160,91 170,95 160,99" fill="#00f0ff" /> <!-- Cloud/Server center --> <rect x="170" y="70" width="80" height="55" rx="10" fill="#0f172a" stroke="#a855f7" stroke-width="1.5" /> <circle cx="210" cy="87" r="10" fill="none" stroke="#a855f7" stroke-width="1.5">
+       <animate attributename="opacity" values="1;0.4;1" dur="1.5s" repeatcount="indefinite" />
+      </circle> <path d="M205 87 Q210 80 215 87" stroke="#a855f7" stroke-width="1" fill="none" /> <rect x="190" y="100" width="40" height="3" rx="1.5" fill="#a855f7" opacity="0.5" /> <rect x="195" y="107" width="30" height="3" rx="1.5" fill="#a855f7" opacity="0.3" /> <text x="210" y="120" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="8" font-family="JetBrains Mono,monospace">
+       CLOUD
+      </text> <!-- Arrows right to team --> <path d="M250 85 L295 70" stroke="#f472b6" stroke-width="1.5" stroke-dasharray="4 3">
+       <animate attributename="stroke-dashoffset" from="0" to="14" dur="1s" repeatcount="indefinite" />
+      </path> <path d="M250 100 L295 120" stroke="#f472b6" stroke-width="1.5" stroke-dasharray="4 3">
+       <animate attributename="stroke-dashoffset" from="0" to="14" dur="1s" repeatcount="indefinite" />
+      </path> <!-- Team member icons --> <circle cx="315" cy="55" r="16" fill="#0f172a" stroke="#f472b6" stroke-width="1.5" /> <circle cx="315" cy="50" r="6" fill="#f472b6" opacity="0.7" /> <path d="M305 68 Q315 62 325 68" stroke="#f472b6" stroke-width="1.5" fill="none" opacity="0.7" /> <text x="315" y="84" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="7" font-family="JetBrains Mono,monospace">
+       Alice
+      </text> <circle cx="315" cy="130" r="16" fill="#0f172a" stroke="#86efac" stroke-width="1.5" /> <circle cx="315" cy="125" r="6" fill="#86efac" opacity="0.7" /> <path d="M305 143 Q315 137 325 143" stroke="#86efac" stroke-width="1.5" fill="none" opacity="0.7" /> <text x="315" y="159" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="7" font-family="JetBrains Mono,monospace">
+       Bob
+      </text> <!-- Version tag --> <rect x="158" y="136" width="64" height="20" rx="5" fill="rgba(168,85,247,0.15)" stroke="rgba(168,85,247,0.3)" stroke-width="1" /> <text x="190" y="150" text-anchor="middle" fill="#a855f7" font-size="9" font-family="JetBrains Mono,monospace">
+       v2.4.1 ✓
+      </text>
+     </svg>
+    </div>
+    <div class="code-block" style="max-width:320px;font-size:12px;"><span class="fn">git</span> push origin main<br><span class="cm">// → CI/CD pipeline triggered</span><br><span class="str">✓</span> Build passed · Deploy live<br><span class="str">✓</span> Team notified via Slack
+    </div>
+   </div><!-- Scene 8: Developer Wraps Up -->
+   <div class="scene bg-s8" id="s8">
+    <div class="scene-label">
+     Scene 08 / 08
+    </div>
+    <div class="scene-title" style="background:linear-gradient(135deg,#fbbf24,#f472b6,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+     AI made development<br>
+     faster &amp; smarter! 🚀
+    </div>
+    <div class="scene-sub">
+     Another challenge conquered
+    </div><!-- Dev leaning back -->
+    <div style="margin:10px auto;" class="desk-container">
+     <svg width="300" height="180" viewbox="0 0 300 180"><!-- Chair --> <rect x="110" y="140" width="80" height="10" rx="4" fill="#1e293b" stroke="#334155" /> <rect x="135" y="150" width="30" height="25" rx="2" fill="#1e293b" /> <rect x="120" y="165" width="60" height="6" rx="2" fill="#1e293b" /> <!-- Developer (leaned back, relaxed) --> <!-- Body --> <ellipse cx="150" cy="115" rx="30" ry="25" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1" /> <!-- Head --> <circle cx="150" cy="82" r="22" fill="#fbbf24" opacity="0.9" /> <!-- Smile --> <path d="M140 88 Q150 96 160 88" stroke="#1e293b" stroke-width="2" fill="none" stroke-linecap="round" /> <!-- Eyes closed/happy --> <path d="M143 80 Q146 77 149 80" stroke="#1e293b" stroke-width="2" fill="none" /> <path d="M151 80 Q154 77 157 80" stroke="#1e293b" stroke-width="2" fill="none" /> <!-- Leaned back arm --> <path d="M135 108 Q120 100 110 108" stroke="#1e3a5f" stroke-width="10" stroke-linecap="round" fill="none" /> <path d="M165 108 Q175 95 178 105" stroke="#1e3a5f" stroke-width="10" stroke-linecap="round" fill="none" /> <!-- Floating stars/sparkles around dev --> <text x="85" y="65" font-size="14" fill="#fbbf24" opacity="0.8">
+       <animate attributename="opacity" values="0.8;0.2;0.8" dur="1.5s" repeatcount="indefinite" /> ✨
+      </text> <text x="190" y="70" font-size="14" fill="#a855f7" opacity="0.8">
+       <animate attributename="opacity" values="0.2;0.8;0.2" dur="1.8s" repeatcount="indefinite" /> ⭐
+      </text> <text x="175" y="55" font-size="12" fill="#00f0ff" opacity="0.7">
+       <animate attributename="opacity" values="0.7;0.1;0.7" dur="1.2s" repeatcount="indefinite" /> 💫
+      </text>
+     </svg>
+    </div><!-- Stats -->
+    <div style="display:flex;gap:12px;max-width:360px;margin:0 auto;">
+     <div style="flex:1;text-align:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px;border:1px solid rgba(255,255,255,0.07);">
+      <div style="font-size:22px;font-weight:800;color:#00f0ff;font-family:'JetBrains Mono',monospace;">
+       3x
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">
+       faster
+      </div>
+     </div>
+     <div style="flex:1;text-align:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px;border:1px solid rgba(255,255,255,0.07);">
+      <div style="font-size:22px;font-weight:800;color:#a855f7;font-family:'JetBrains Mono',monospace;">
+       98%
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">
+       coverage
+      </div>
+     </div>
+     <div style="flex:1;text-align:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px;border:1px solid rgba(255,255,255,0.07);">
+      <div style="font-size:22px;font-weight:800;color:#86efac;font-family:'JetBrains Mono',monospace;">
+       0
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">
+       bugs 🐛
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- Progress bar -->
+  <div id="progress-bar" style="width:12.5%;"></div><!-- Scene dots -->
+  <div id="scene-dots">
+   <div class="dot active" data-scene="0"></div>
+   <div class="dot" data-scene="1"></div>
+   <div class="dot" data-scene="2"></div>
+   <div class="dot" data-scene="3"></div>
+   <div class="dot" data-scene="4"></div>
+   <div class="dot" data-scene="5"></div>
+   <div class="dot" data-scene="6"></div>
+   <div class="dot" data-scene="7"></div>
+  </div><!-- Timeline -->
+  <div id="timeline">
+   <div class="tl-item active" data-scene="0">
+    <div class="tl-dot"></div>
+    <div class="tl-label">
+     Start
+    </div>
+   </div>
+   <div class="tl-line"></div>
+   <div class="tl-item" data-scene="1">
+    <div class="tl-dot"></div>
+    <div class="tl-label">
+     Query
+    </div>
+   </div>
+   <div class="tl-line"></div>
+   <div class="tl-item" data-scene="2">
+    <div class="tl-dot"></div>
+    <div class="tl-label">
+     AI
+    </div>
+   </div>
+   <div class="tl-line"></div>
+   <div class="tl-item" data-scene="3">
+    <div class="tl-dot"></div>
+    <div class="tl-label">
+     Result
+    </div>
+   </div>
+   <div class="tl-line"></div>
+   <div class="tl-item" data-scene="4">
+    <div class="tl-dot"></div>
+    <div class="tl-label">
+     Code
+    </div>
+   </div>
+   <div class="tl-line"></div>
+   <div class="tl-item" data-scene="5">
+    <div class="tl-dot"></div>
+    <div class="tl-label">
+     Test
+    </div>
+   </div>
+   <div class="tl-line"></div>
+   <div class="tl-item" data-scene="6">
+    <div class="tl-dot"></div>
+    <div class="tl-label">
+     Deploy
+    </div>
+   </div>
+   <div class="tl-line"></div>
+   <div class="tl-item" data-scene="7">
+    <div class="tl-dot"></div>
+    <div class="tl-label">
+     Done
+    </div>
+   </div>
+  </div><!-- Nav buttons -->
+  <div id="nav-btns"><button class="nav-btn" id="btn-prev" title="Previous">‹</button> <button class="nav-btn" id="btn-next" title="Next">›</button>
+  </div>
+  <script>
+const TOTAL = 8;
+let current = 0;
+let autoTimer = null;
+let isAnimating = false;
+
+const scenes = document.querySelectorAll('.scene');
+const dots = document.querySelectorAll('.dot');
+const tlItems = document.querySelectorAll('.tl-item');
+const progressBar = document.getElementById('progress-bar');
+
+function showScene(idx, dir=1) {
+  if (isAnimating) return;
+  isAnimating = true;
+
+  scenes[current].classList.remove('active');
+  dots[current].classList.remove('active');
+  tlItems[current].classList.remove('active');
+
+  current = ((idx % TOTAL) + TOTAL) % TOTAL;
+
+  scenes[current].classList.add('active');
+  dots[current].classList.add('active');
+  tlItems[current].classList.add('active');
+  progressBar.style.width = ((current + 1) / TOTAL * 100) + '%';
+
+  onSceneEnter(current);
+  setTimeout(() => { isAnimating = false; }, 800);
+}
+
+// Scene-specific entry animations
+function onSceneEnter(idx) {
+  if (idx === 2) startAIProgress();
+  if (idx === 3) startTyping();
+  if (idx === 4) animateChecks();
+  if (idx === 5) animateTests();
+  if (idx === 2) drawNeuralNet();
+}
+
+// AI Progress bar animation
+let progressInterval = null;
+function startAIProgress() {
+  const bar = document.getElementById('ai-progress');
+  const txt = document.getElementById('ai-progress-txt');
+  const labels = ['Analyzing patterns','Searching knowledge','Generating solution','Optimizing output'];
+  let pct = 0;
+  clearInterval(progressInterval);
+  bar.style.width = '0%';
+  progressInterval = setInterval(() => {
+    pct = Math.min(100, pct + Math.random() * 4 + 1);
+    bar.style.width = pct + '%';
+    const li = Math.min(3, Math.floor(pct / 25));
+    txt.textContent = labels[li] + '… ' + Math.floor(pct) + '%';
+    if (pct >= 100) clearInterval(progressInterval);
+  }, 80);
+}
+
+// Typing effect for scene 4
+const solutionLines = [
+  '<span class="kw">// ✨ Optimized solution</span>',
+  '<span class="kw">const</span> <span class="fn">sorted</span> = items',
+  '  .<span class="fn">sort</span>((a,b) => a.<span class="fn">val</span> - b.<span class="fn">val</span>)',
+  '  .<span class="fn">reduce</span>((acc, item) => {',
+  '    <span class="kw">return</span> acc.<span class="fn">concat</span>(item);',
+  '  }, []);',
+];
+function startTyping() {
+  const el = document.getElementById('typed-solution');
+  el.innerHTML = '';
+  let li = 0, ci = 0;
+  const raw = solutionLines.map(l => l.replace(/<[^>]+>/g,''));
+  let typingInterval = setInterval(() => {
+    if (li >= solutionLines.length) { clearInterval(typingInterval); return; }
+    if (ci <= raw[li].length) {
+      const partial = raw[li].substring(0,ci);
+      const lines = [];
+      for (let i=0;i<li;i++) lines.push(solutionLines[i]);
+      lines.push(partial + (ci<raw[li].length?'<span class="cursor">|</span>':''));
+      el.innerHTML = lines.join('<br/>');
+      ci++;
+    } else {
+      li++; ci=0;
+    }
+  }, 35);
+}
+
+// Check items animation
+function animateChecks() {
+  document.querySelectorAll('.check-item').forEach(el => {
+    const delay = parseInt(el.dataset.delay) || 0;
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.4s, transform 0.4s';
+      el.style.opacity = '1';
+      el.style.transform = 'scale(1.05)';
+      setTimeout(() => { el.style.transform = 'scale(1)'; }, 200);
+    }, delay + 300);
+  });
+}
+
+// Test rows animation
+function animateTests() {
+  document.querySelectorAll('.test-row').forEach(el => {
+    const delay = parseInt(el.dataset.delay) || 0;
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.4s, transform 0.4s';
+      el.style.opacity = '1';
+      el.style.transform = 'translateX(0)';
+    }, delay + 200);
+  });
+  setTimeout(() => {
+    const bar = document.getElementById('coverage-bar');
+    const pct = document.getElementById('coverage-pct');
+    if (bar) { bar.style.width = '98%'; pct.textContent = '98%'; }
+  }, 400);
+}
+
+// Neural network canvas for scene 3
+function drawNeuralNet() {
+  const canvas = document.getElementById('nn-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const layers = [[{x:30,y:60},{x:30,y:120}],[{x:110,y:35},{x:110,y:90},{x:110,y:140}],[{x:190,y:50},{x:190,y:100},{x:190,y:150}],[{x:260,y:70},{x:260,y:120}]];
+
+  let t = 0;
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    t += 0.03;
+    // Draw connections
+    layers.forEach((layer,li) => {
+      if (li===layers.length-1) return;
+      layer.forEach(n => {
+        layers[li+1].forEach(m => {
+          const progress = ((Math.sin(t + li*0.5)*0.5+0.5));
+          const grd = ctx.createLinearGradient(n.x,n.y,m.x,m.y);
+          grd.addColorStop(0,'rgba(168,85,247,0.3)');
+          grd.addColorStop(progress,'rgba(0,240,255,0.9)');
+          grd.addColorStop(1,'rgba(168,85,247,0.2)');
+          ctx.strokeStyle = grd;
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(n.x,n.y); ctx.lineTo(m.x,m.y); ctx.stroke();
+        });
+      });
+    });
+    // Draw nodes
+    layers.forEach((layer,li) => {
+      layer.forEach((n,ni) => {
+        const pulse = Math.sin(t + li*1.2 + ni*0.8)*0.5+0.5;
+        ctx.beginPath();
+        ctx.arc(n.x,n.y,8,0,Math.PI*2);
+        ctx.fillStyle = `rgba(168,85,247,${0.3+pulse*0.5})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(0,240,255,${0.5+pulse*0.5})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // Glow
+        ctx.beginPath();
+        ctx.arc(n.x,n.y,12+pulse*4,0,Math.PI*2);
+        ctx.strokeStyle = `rgba(0,240,255,${0.1*pulse})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+    });
+    if (scenes[2].classList.contains('active')) requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// Stars for scene 1
+function createStars() {
+  const container = document.getElementById('stars-s1');
+  if (!container) return;
+  for (let i=0;i<40;i++) {
+    const s = document.createElement('div');
+    const size = Math.random()*2+1;
+    s.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:rgba(255,255,255,${Math.random()*0.5+0.1});left:${Math.random()*100}%;top:${Math.random()*100}%;animation:fade-pulse ${(Math.random()*3+1).toFixed(1)}s ease-in-out ${(Math.random()*2).toFixed(1)}s infinite;`;
+    container.appendChild(s);
+  }
+}
+
+// Navigation
+document.getElementById('btn-next').addEventListener('click', () => {
+  clearAutoplay(); showScene(current+1, 1); scheduleAutoplay();
+});
+document.getElementById('btn-prev').addEventListener('click', () => {
+  clearAutoplay(); showScene(current-1, -1); scheduleAutoplay();
+});
+dots.forEach(d => {
+  d.addEventListener('click', () => {
+    clearAutoplay(); showScene(parseInt(d.dataset.scene), 1); scheduleAutoplay();
+  });
+});
+tlItems.forEach(t => {
+  t.addEventListener('click', () => {
+    clearAutoplay(); showScene(parseInt(t.dataset.scene), 1); scheduleAutoplay();
+  });
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key==='ArrowDown') { clearAutoplay(); showScene(current+1); scheduleAutoplay(); }
+  if (e.key==='ArrowLeft'||e.key==='ArrowUp') { clearAutoplay(); showScene(current-1); scheduleAutoplay(); }
+});
+
+function clearAutoplay() { clearInterval(autoTimer); }
+function scheduleAutoplay() {
+  autoTimer = setInterval(() => showScene(current+1), 6000);
+}
+
+// Init
+createStars();
+scenes[0].classList.add('active');
+onSceneEnter(0);
+scheduleAutoplay();
+
+// Element SDK (optional)
+window.elementSdk && window.elementSdk.init({
+  defaultConfig: { hero_title: 'Life of a Developer' },
+  onConfigChange: async (cfg) => {},
+  mapToCapabilities: () => ({ recolorables:[], borderables:[], fontEditable:undefined, fontSizeable:undefined }),
+  mapToEditPanelValues: (cfg) => new Map([['hero_title', cfg.hero_title]])
+});
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e1cb8b9f68c3d2f',t:'MTc3NDQyOTE4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
